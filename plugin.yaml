@@ -1,0 +1,11 @@
+name: hermes-roo-modes
+version: 1.0.0
+description: "Roo-Code style mode system for Hermes Agent — tool gating, role-based personas, and multi-agent orchestration. Provides /mode command, switch_mode tool, and 5 built-in modes (code, architect, ask, debug, orchestrator) plus 7 bundled modes."
+provides_tools:
+  - switch_mode
+  - orchestrate
+provides_toolsets:
+  - agent
+hooks:
+  - on_tool_call
+  - transform_tool_result
