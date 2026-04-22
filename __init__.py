@@ -265,9 +265,10 @@ def _handle_mode_command(ctx, args: str) -> str:
                 f"**Source:** {mode.source}"
             )
 
-        # Set mode
+        # Set mode — extract only the first word as the mode name
+        mode_arg = args.split()[0] if args.split() else args
         try:
-            mode = set_active_mode(args)
+            mode = set_active_mode(mode_arg)
             return f"Switched to **{mode.name}** mode. Tool groups: {', '.join(mode.tool_groups)}"
         except ValueError as e:
             return f"Error: {e}"
