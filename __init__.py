@@ -534,9 +534,8 @@ def _register_mode_command(ctx) -> bool:
     try:
         ctx.register_command(
             name="mode",
-            description="Switch or list agent modes (code, architect, ask, debug, orchestrator)",
             handler=_handle_mode_command,
-            args_hint="[mode-name|list|info <mode>]",
+            description="Switch or list agent modes (code, architect, ask, debug, orchestrator)",
         )
         logger.info("Registered /mode command")
         return True
@@ -585,8 +584,12 @@ def _patch_commands():
         )
         commands.COMMAND_REGISTRY.append(new_cmd)
 
-        # Rebuild the lookup
-        commands._COMMAND_LOOKUP = commands._build_command_lookup()
+        # Rebuild the lookup if the function exists
+        if hasattr(commands, "_build_command_lookup"):
+            try:
+                commands._COMMAND_LOOKUP = commands._build_command_lookup()
+            except Exception:
+                pass
 
         logger.info("Added /mode command to COMMAND_REGISTRY")
     except Exception as e:
@@ -647,9 +650,12 @@ def _register_mode_tool_hooks():
     try:
         from hermes_cli import plugins
 
-        def mode_tool_gate(tool_name: str, args: dict, task_id: str = "",
-                          session_id: str = "", tool_call_id: str = "") -> Optional[str]:
-            """Hook that gates tools based on active mode."""
+        def mode_tool_gate(tool_name: str, args: dict = None, task_id: str = "",
+                          session_id: str = "", tool_call_id: str = "") -> Optional[dict]:
+            """Hook that gates tools based on active mode.
+
+            Returns {"action": "block", "message": "..."} to block, or None to allow.
+            """
             try:
                 from hermes_roo_modes.modes import get_active_mode
                 mode = get_active_mode()
@@ -663,20 +669,20 @@ def _register_mode_tool_hooks():
                 # Check if tool is allowed in current mode
                 if not mode.is_tool_allowed(tool_name):
                     allowed = ', '.join(sorted(mode.tool_groups))
-                    return (
-                        f"Tool '{tool_name}' is not available in {mode.name} mode. "
-                        f"Available tool groups: {allowed}. "
-                        f"Use switch_mode to change modes."
-                    )
+                    return {
+                        "action": "block",
+                        "message": (
+                            f"Tool '{tool_name}' is not available in {mode.name} mode. "
+                            f"Available tool groups: {allowed}. "
+                            f"Use switch_mode to change modes."
+                        ),
+                    }
             except Exception:
                 pass  # Fail open — allow tool
             return None
 
-        plugins.get_plugin_manager().register_hook(
-            "pre_tool_call",
-            mode_tool_gate,
-            name="hermes-roo-modes-tool-gate",
-        )
+        pm = plugins.get_plugin_manager()
+        pm._hooks.setdefault("pre_tool_call", []).append(mode_tool_gate)
         logger.info("Registered mode_tool_gate hook")
     except Exception as e:
         logger.warning("Failed to register mode tool hooks: %s", e)
