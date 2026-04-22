@@ -1,131 +1,143 @@
-# Hermes Roo Modes
+# hermes-roo-modes
 
-Roo-Code style mode system for Hermes Agent — tool gating, role-based personas, and multi-agent task orchestration.
+Roo Code modes for [Hermes Agent](https://github.com/nousresearch/hermes-agent) — 15 specialized modes with tool gating, orchestration, and HermesIgnore support.
 
-## Overview
+Ported from [Roo Code for VS Code](https://github.com/RooVetGit/Roo-Code) and enhanced with Hermes-native features.
 
-Hermes Roo Modes brings Roo Code's powerful mode system to Hermes Agent. Modes control which tools the agent can use, what persona it adopts, and provide file path constraints for specialized workflows.
+## Installation
 
-## Built-in Modes
+```bash
+hermes plugins install DBOT-DC/hermes-roo-modes --enable
+```
+
+After install, restart Hermes. Verify with:
+
+```bash
+hermes plugins list
+```
+
+## Modes
+
+### Built-in (5)
 
 | Mode | Description | Tool Groups |
 |------|-------------|-------------|
-| `code` | General coding assistant | read, edit, command, mcp |
-| `architect` | Design, planning, specifications | read, edit, mcp (markdown/config only) |
-| `ask` | Answer questions only | read, mcp |
-| `debug` | Debugging specialist | read, edit, command, mcp |
-| `orchestrator` | Multi-agent task coordination | delegate_task only |
+| 🏗️ Architect | Plan and design before implementation | read, edit (.md only), mcp |
+| 💻 Code | Write, modify, and refactor code | read, edit, command, mcp |
+| ❓ Ask | Get answers and explanations | read, mcp |
+| 🪲 Debug | Diagnose and fix software issues | read, edit, command, mcp |
+| 🪃 Orchestrator | Coordinate tasks across multiple modes | read (delegates work) |
 
-## Bundled Modes
+### Bundled (10)
 
-Seven specialized YAML-based modes are included:
-
-- **`devops`** — Infrastructure, CI/CD, Docker, Kubernetes
-- **`docs-extractor`** — Extract documentation from source code
-- **`documentation-writer`** — Write READMEs, API docs, guides
-- **`merge-resolver`** — Git merge conflict resolution
-- **`project-research`** — Technology research and comparison
-- **`security-reviewer`** — Security vulnerability auditing
-- **`skills-writer`** — Create Hermes Agent skills
-
-## Tool Groups
-
-Tools are organized into groups that modes can enable/disable:
-
-- **`read`** — read_file, search_files, browser_*, web_search, web_extract, vision_analyze
-- **`edit`** — write_file, patch, execute_code
-- **`command`** — terminal, process
-- **`mcp`** — All MCP tools (dynamic)
-
-## Always Available Tools
-
-These tools are available in ALL modes regardless of configuration:
-
-- `switch_mode` — Change the current mode
-- `delegate_task` — Spawn subagents
-- `todo` — Task tracking
-- `memory` — Memory operations
-- `clarify` — Ask clarifying questions
-- `session_search` — Search conversation history
-- `skills_list`, `skill_view`, `skill_manage` — Skills management
-- `cronjob` — Scheduled tasks
-- `orchestrate` — Task planning in orchestrator mode
+| Mode | Description | Tool Groups |
+|------|-------------|-------------|
+| ⚙️ DevOps Engineer | Docker, CI/CD, infrastructure | read, edit, command, mcp |
+| 📚 Docs Extractor | Extract facts from codebase for docs teams | read, edit (restricted), command, mcp |
+| 📝 Documentation Writer | Write polished documentation | read, edit, command, mcp |
+| 🔀 Merge Resolver | Resolve merge conflicts using git history | read, edit, command, mcp |
+| 🔬 Project Research | Technology evaluation and comparison | read, command, mcp |
+| 🔒 Security Reviewer | Vulnerability detection and security audit | read, edit, command, mcp |
+| 🛠️ Skills Writer | Create and maintain Hermes skills | read, edit, command, mcp |
+| 🧪 Jest Test Engineer | JavaScript/TypeScript testing with Jest | read, edit, command, mcp |
+| 🎭 Mode Writer | Design and create new Hermes modes | read, edit, command, mcp |
+| 📋 User Story Creator | Agile user stories and acceptance criteria | read, edit, command, mcp |
 
 ## Usage
 
 ### Switch Modes
 
-```
-You: /mode architect
-Hermes: Switched to Architect mode. Tool groups: read, edit, mcp
-```
-
-### List Available Modes
+In any Hermes session:
 
 ```
-You: /mode list
-Hermes: Available Modes:
-- code: Code ← active
-- architect: Architect
-- ask: Ask
-- debug: Debug
-- orchestrator: Orchestrator
-...
+/mode code
+/mode architect
+/mode debug
+/mode ask
+/mode orchestrator
 ```
 
-### Use switch_mode Tool
+Or use the `switch_mode` tool directly:
 
 ```
-You: Use architect mode to plan a new feature
-Hermes: [uses architect mode automatically based on context]
+switch_mode("code")
+switch_mode("architect")
 ```
+
+### Check Current Mode
+
+```
+/mode
+```
+
+### List All Modes
+
+```
+/mode list
+```
+
+### Clear Mode (return to unrestricted)
+
+```
+/mode clear
+```
+
+## How Tool Gating Works
+
+Each mode restricts which tools the agent can use:
+
+- **read** — file reading, searching, web search
+- **edit** — file writing, patching, terminal commands
+- **command** — shell execution, process management
+- **mcp** — MCP server tools (GitHub, Context7, etc.)
+
+Example: In **Architect** mode, the agent can read files and edit only `.md` files — perfect for planning without accidentally modifying source code.
+
+## Orchestrator Mode
+
+The orchestrator plans complex tasks and delegates to other modes:
+
+1. `/mode orchestrator` — enter orchestration mode
+2. Describe your task
+3. The orchestrator breaks it into subtasks, each assigned to the best mode
+4. Subtasks execute in parallel where possible
+5. Results are synthesized into a final deliverable
 
 ## Custom Modes
 
-Add custom modes by creating YAML files in `~/.hermes/modes/`:
+Create your own modes by adding YAML files to `~/.hermes/modes/`:
 
 ```yaml
-slug: my-custom-mode
-name: My Custom Mode
+slug: my-mode
+name: "🚀 My Custom Mode"
 role_definition: |
-  You are a specialized assistant focused on...
+  You are a specialist in...
 when_to_use: |
   Use this mode when...
-tool_groups: ['read', 'edit', 'mcp']
-constraints:
-  file_regex: '\.(py|js)$'
+tool_groups:
+  - read
+  - edit
+custom_instructions: |
+  Additional guidance...
+source: custom
 ```
 
-## Architecture
+## HermesIgnore
+
+Create a `.hermesignore` file in your project to exclude files from agent access:
 
 ```
-hermes_roo_modes/
-├── modes.py              # Mode dataclass, built-in modes, YAML loading
-├── task_hierarchy.py      # Task tree for orchestrator mode
-├── orchestrator.py        # Task decomposition engine
-├── hermesignore.py        # Gitignore-style file filtering
-├── mode_tool.py           # switch_mode + orchestrate tools
-└── bundled_modes/         # 7 YAML mode definitions
+# Ignore patterns
+*.log
+.env
+dist/
 ```
-
-## Tool Gating
-
-Mode-based tool gating works by:
-
-1. `get_tool_definitions()` in `model_tools.py` filters tools based on active mode
-2. `_refresh_tools_for_mode()` in `run_agent.py` refreshes tool list after mode switch
-3. `pre_tool_call` hook blocks tool execution if mode doesn't allow it
-4. Always-available tools bypass all gating
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `/mode [name]` | Switch to named mode |
-| `/mode list` | List all available modes |
-| `/mode info [name]` | Show details about a mode |
 
 ## Requirements
 
-- Hermes Agent 0.10.0+
-- PyYAML (for custom mode loading)
+- Hermes Agent v0.20+ with plugin support
+- Python 3.10+
+
+## License
+
+MIT
