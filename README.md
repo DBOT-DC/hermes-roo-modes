@@ -2,7 +2,16 @@
 
 Roo Code modes for [Hermes Agent](https://github.com/nousresearch/hermes-agent) — 15 specialized modes with tool gating, orchestration, and HermesIgnore support.
 
-Ported from [Roo Code for VS Code](https://github.com/RooVetGit/Roo-Code) and enhanced with Hermes-native features.
+Ported from [Roo Code](https://github.com/RooVetGit/Roo-Code) for VS Code.
+
+## Features
+
+- **15 modes** — All official Roo Code modes (5 built-in + 10 bundled YAML)
+- **Tool gating** — Each mode restricts which tools are available (read/edit/mcp/command)
+- **Orchestrator** — Auto-delegates subtasks to appropriate modes
+- **HermesIgnore** — `.hermesignore` file support (like `.gitignore` for agent access)
+- **Custom modes** — Add your own via `~/.hermes/modes/*.yaml` or project `.roomodes`
+- **Context compression** — Sliding window context management
 
 ## Installation
 
@@ -10,133 +19,164 @@ Ported from [Roo Code for VS Code](https://github.com/RooVetGit/Roo-Code) and en
 hermes plugins install DBOT-DC/hermes-roo-modes --enable
 ```
 
-After install, restart Hermes. Verify with:
-
-```bash
-hermes plugins list
-```
-
 ## Modes
 
-### Built-in (5)
+### Built-in (Python)
 
 | Mode | Description | Tool Groups |
 |------|-------------|-------------|
-| 🏗️ Architect | Plan and design before implementation | read, edit (.md only), mcp |
-| 💻 Code | Write, modify, and refactor code | read, edit, command, mcp |
-| ❓ Ask | Get answers and explanations | read, mcp |
-| 🪲 Debug | Diagnose and fix software issues | read, edit, command, mcp |
-| 🪃 Orchestrator | Coordinate tasks across multiple modes | read (delegates work) |
+| `code` | Full coding with file edit, terminal, search | `read`, `edit`, `mcp`, `command` |
+| `architect` | System design, architecture planning | `read`, `edit`, `mcp` |
+| `ask` | Q&A only — no file modification | `read`, `mcp` |
+| `debug` | Bug investigation and fixing | `read`, `edit`, `mcp`, `command` |
+| `orchestrator` | Delegates subtasks to other modes | (managed — delegates to others) |
 
-### Bundled (10)
+### Bundled (YAML)
 
-| Mode | Description | Tool Groups |
-|------|-------------|-------------|
-| ⚙️ DevOps Engineer | Docker, CI/CD, infrastructure | read, edit, command, mcp |
-| 📚 Docs Extractor | Extract facts from codebase for docs teams | read, edit (restricted), command, mcp |
-| 📝 Documentation Writer | Write polished documentation | read, edit, command, mcp |
-| 🔀 Merge Resolver | Resolve merge conflicts using git history | read, edit, command, mcp |
-| 🔬 Project Research | Technology evaluation and comparison | read, command, mcp |
-| 🔒 Security Reviewer | Vulnerability detection and security audit | read, edit, command, mcp |
-| 🛠️ Skills Writer | Create and maintain Hermes skills | read, edit, command, mcp |
-| 🧪 Jest Test Engineer | JavaScript/TypeScript testing with Jest | read, edit, command, mcp |
-| 🎭 Mode Writer | Design and create new Hermes modes | read, edit, command, mcp |
-| 📋 User Story Creator | Agile user stories and acceptance criteria | read, edit, command, mcp |
+| Mode | Source | Description |
+|------|--------|-------------|
+| `devops` | Roo Code | DevOps and deployment tasks |
+| `docs-extractor` | Roo Code | Extract and organize documentation |
+| `documentation-writer` | Roo Code | Write and update project docs |
+| `merge-resolver` | Roo Code | Resolve merge conflicts |
+| `project-research` | Roo Code | Research projects and technologies |
+| `security-reviewer` | Roo Code | Security audit and review |
+| `skills-writer` | Roo Code | Write Hermes skills |
+| `jest-test-engineer` | Roo Code | Jest test writing and debugging |
+| `mode-writer` | Roo Code | Create custom modes |
+| `user-story-creator` | Roo Code | Write user stories |
 
 ## Usage
 
 ### Switch Modes
 
-In any Hermes session:
+```
+/mode code        # Switch to code mode
+/mode architect   # Switch to architect mode
+/mode ask         # Switch to ask mode
+/mode list        # List all available modes
+```
+
+### Tool Gating
+
+Each mode gates tools based on its `tool_groups`:
+
+- **`read`** — `read_file`, `search_files`, `browser_snapshot`, `list_directory`
+- **`edit`** — `write_file`, `patch`, `execute_code`, `terminal`
+- **`mcp`** — All MCP tools
+- **`command`** — `browser_navigate`, `browser_click`, `browser_type`, `browser_press`
+
+### Orchestrator Workflow
 
 ```
-/mode code
-/mode architect
-/mode debug
-/mode ask
 /mode orchestrator
+Plan a React dashboard with authentication →
+  ├─ architect: Design system architecture
+  ├─ code: Implement components
+  ├─ code: Write tests
+  └─ debug: Fix integration issues
 ```
 
-Or use the `switch_mode` tool directly:
+### Custom Modes
 
-```
-switch_mode("code")
-switch_mode("architect")
-```
-
-### Check Current Mode
-
-```
-/mode
-```
-
-### List All Modes
-
-```
-/mode list
-```
-
-### Clear Mode (return to unrestricted)
-
-```
-/mode clear
-```
-
-## How Tool Gating Works
-
-Each mode restricts which tools the agent can use:
-
-- **read** — file reading, searching, web search
-- **edit** — file writing, patching, terminal commands
-- **command** — shell execution, process management
-- **mcp** — MCP server tools (GitHub, Context7, etc.)
-
-Example: In **Architect** mode, the agent can read files and edit only `.md` files — perfect for planning without accidentally modifying source code.
-
-## Orchestrator Mode
-
-The orchestrator plans complex tasks and delegates to other modes:
-
-1. `/mode orchestrator` — enter orchestration mode
-2. Describe your task
-3. The orchestrator breaks it into subtasks, each assigned to the best mode
-4. Subtasks execute in parallel where possible
-5. Results are synthesized into a final deliverable
-
-## Custom Modes
-
-Create your own modes by adding YAML files to `~/.hermes/modes/`:
+Create `~/.hermes/modes/my-mode.yaml`:
 
 ```yaml
 slug: my-mode
-name: "🚀 My Custom Mode"
+name: My Custom Mode
 role_definition: |
   You are a specialist in...
-when_to_use: |
-  Use this mode when...
 tool_groups:
   - read
   - edit
-custom_instructions: |
-  Additional guidance...
-source: custom
+  - mcp
 ```
 
-## HermesIgnore
+Or add a `.roomodes` file in your project root (same format as Roo Code).
 
-Create a `.hermesignore` file in your project to exclude files from agent access:
+### HermesIgnore
+
+Create `.hermesignore` in your project root:
 
 ```
-# Ignore patterns
-*.log
-.env
+# Ignore node_modules
+node_modules/
+# Ignore build artifacts
 dist/
+build/
+# Ignore specific files
+secrets.json
 ```
 
-## Requirements
+## MCP Integration
 
-- Hermes Agent v0.20+ with plugin support
-- Python 3.10+
+This plugin works alongside these recommended MCP servers:
+
+### MiniMax Token Plan MCP
+```bash
+hermes mcp add minimax --command uvx --args "minimax-coding-plan-mcp" --args "-y" \
+  --env MINIMAX_API_KEY=your_key --env MINIMAX_API_HOST=https://api.minimax.io
+```
+Tools: `web_search`, `understand_image`
+
+### MiniMax Full MCP
+```bash
+hermes mcp add minimax-full --command uvx --args "minimax-mcp" \
+  --env MINIMAX_API_KEY=your_key --env MINIMAX_API_HOST=https://api.minimax.io \
+  --env MINIMAX_MCP_BASE_PATH=/path/to/output
+```
+Tools: `text_to_audio`, `list_voices`, `voice_clone`, `play_audio`, `voice_design`, `text_to_image`, `generate_video`, `query_video_generation`, `music_generation`
+
+### Z.AI Vision MCP
+```bash
+hermes mcp add glm-vision --command node --args "/path/to/@z_ai/mcp-server/build/index.js" \
+  --env Z_AI_API_KEY=your_key --env Z_AI_MODE=ZAI
+```
+Tools: `ui_to_artifact`, `extract_text_from_screenshot`, `diagnose_error_screenshot`, `understand_technical_diagram`, `analyze_data_visualization`, `ui_diff_check`, `analyze_image`, `analyze_video`
+
+### Z.AI Web Search (HTTP)
+```bash
+hermes mcp add zai-web-search --url "https://api.z.ai/api/mcp/web_search_prime/mcp" \
+  --header "Authorization: Bearer your_key"
+```
+Tools: `web_search_prime`
+
+### Z.AI Web Reader (HTTP)
+```bash
+hermes mcp add zai-web-reader --url "https://api.z.ai/api/mcp/web_reader/mcp" \
+  --header "Authorization: Bearer your_key"
+```
+Tools: `webReader`
+
+### Z.AI Zread (HTTP)
+```bash
+hermes mcp add zai-zread --url "https://api.z.ai/api/mcp/zread/mcp" \
+  --header "Authorization: Bearer your_key"
+```
+Tools: `search_doc`, `read_file`, `get_repo_structure`
+
+## Provider Configuration
+
+### MiniMax M2.7 (Primary)
+```bash
+hermes model  # Select "MiniMax (global endpoint)" → enter Token Plan API key
+```
+- API: `https://api.minimax.io/anthropic` (Anthropic-compatible)
+- Model: `MiniMax-M2.7`
+
+### GLM-5-Turbo (Fallback)
+- API: `https://api.z.ai/api/coding/paas/v4`
+- Model: `GLM-5-Turbo`
+- Set as `fallback_model` in `config.yaml`
+
+## Development
+
+```bash
+cd /tmp/hermes-roo-modes
+git clone https://github.com/DBOT-DC/hermes-roo-modes.git
+# Edit modes in hermes_roo_modes/bundled_modes/
+# Test: python3 -c "from hermes_roo_modes.modes import list_modes; print(list_modes())"
+```
 
 ## License
 
